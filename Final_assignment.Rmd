@@ -1,0 +1,126 @@
+---
+title: "Final assigment - Practical Machine Learning"
+author: "Domingo González"
+date: "July, 2016"
+output: html_document
+---
+
+## Introduction
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Objective
+
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+## Data
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+## Loading and preparing Data for predictions.
+
+```{r}
+set.seed(22222)
+
+training_url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testing_url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+training <- read.csv(url(training_url), na.strings=c("NA","#DIV/0!",""))
+testing <- read.csv(url(testing_url), na.strings=c("NA","#DIV/0!",""))
+
+## The training data set contains 19622 observations for 160 variables and the testing data set contains 20 observations for 160 variables.
+
+dim(training)
+dim(testing)
+
+## We can observe that we have a large sample size corresponding to the "training" data, so according to the rules for prediction study design  we can perform a partition by 60% for training set (cross validation) and 40% by validation (testing).
+
+library(caret)
+intrain <- createDataPartition(y=training$classe, p=0.6, list=FALSE)
+training_p <- training[intrain, ]
+testing_p <- training[-intrain, ]
+dim(training_p)
+dim(testing_p)
+
+## Once we have obtained the data for prediction, we need to clean it from variables and observations that are not useful for the analysis.
+
+## Cleaning variables which their variances are close to zero
+zero_variance <- nearZeroVar(training_p)
+training_p <- training_p[ ,-zero_variance]
+testing_p <- testing_p[ ,-zero_variance]
+
+## Cleaning variables with most of NAs
+most_NAs <- sapply(training_p, function(x) mean(is.na(x))) > 0.6
+training_p <- training_p[ , most_NAs==FALSE]
+testing_p <- testing_p[ , most_NAs==FALSE]
+
+## Cleaning variables that are not significants in the prediction analysis as the first 5 variables which are related to the time in the data set.
+training_p <- training_p[ , -(1:5)]
+testing_p <- testing_p[ , -(1:5)]
+
+## Dimensions of our cleaned and final data to use for the prediction analysis
+dim(training_p)
+dim(testing_p)
+```
+
+## Prediction Models
+# Prediction with Decision Trees
+```{r}
+library(rpart)
+model_Dtree <- rpart(classe ~ ., data=training_p, method="class")
+
+library(rattle)
+library(rpart.plot)
+library(RColorBrewer)
+## to view the decision tree we can use these two options
+fancyRpartPlot(model_Dtree)
+prp(model_Dtree)
+
+## Using the model (model_Dtree) for Prediction:
+
+prediction_Dtree <- predict(model_Dtree, testing_p, type = "class")
+
+## test results from the prediction_Dtree
+library(caret)
+confusionMatrix(prediction_Dtree, testing_p$classe)
+
+```
+
+# Prediction with random forest
+```{r}
+library(randomForest)
+model_rf <- randomForest(classe ~ ., data=training_p)
+prediction_rf <- predict(model_rf, testing_p, type = "class")
+confusionMatrix(prediction_rf, testing_p$classe)
+
+```
+
+# Prediction with linear discriminant analysis
+```{r}
+model_lda <- train(classe ~ ., data=training_p, method = "lda")
+prediction_lda <- predict(model_lda, testing_p)
+confusionMatrix(testing_p$classe, prediction_lda)
+
+```
+
+As it can be observed the Random Forests prediction is more accurate than the linear discriminat analysis and the decision tree prediction.
+
+## Model applied to submission set
+We use the random forest prediction with the high accuracy model on the test data set.
+
+```{r}
+prediction_validation <- predict(model_rf, newdata=testing)
+prediction_results <- data.frame(problem_id=testing$problem_id, predicted=prediction_validation)
+prediction_results
+```
+
+## Conclusion
+Three prediction models were applied, the most accurated model was the random forestFor(0.9949), then the decision tree model (0.7346) and the linear discriminant analysis (0.7146). The random forest prediction model was applied to the test data for validation. 
+
