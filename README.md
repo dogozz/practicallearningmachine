@@ -1,5 +1,5 @@
-## Practical Machine Learning
-# Repository for the final assignment
+# Practical Machine Learning
+## Repository for the final assignment
 
 Background
 
