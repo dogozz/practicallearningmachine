@@ -2,7 +2,7 @@
 title: "Final assigment - Practical Machine Learning"
 author: "Domingo González"
 date: "July, 2016"
-output: html_document
+output: pdf_document
 ---
 
 ## Introduction
@@ -32,7 +32,7 @@ set.seed(22222)
 training_url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 testing_url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 
-training <- read.csv(url(training_url), na.strings=c("NA","#DIV/0!",""))
+training <- read.csv(url(training_url),na.strings=c("NA","#DIV/0!",""))
 testing <- read.csv(url(testing_url), na.strings=c("NA","#DIV/0!",""))
 
 ## The training data set contains 19622 observations for 160 variables and the testing data set contains 20 observations for 160 variables.
@@ -112,6 +112,27 @@ confusionMatrix(testing_p$classe, prediction_lda)
 
 As it can be observed the Random Forests prediction is more accurate than the linear discriminat analysis and the decision tree prediction.
 
+
+## Out of sample error
+Using the 25% of the of the data set called testing_p we obtain how the choosed model will perform the predictions by obtaining the out of sample test error.
+
+```{r}
+pred_test <- predict( model_rf, testing_p)
+confusionMatrix(pred_test, testing_p$classe)
+
+## checking the accuracy of the model
+out_sample_error_accuracy <- sum(pred_test == testing_p$classe)/length(pred_test)
+out_sample_error_accuracy
+
+## the sample error will be:
+
+out_sample_error <- 1-out_sample_error_accuracy
+out_sample_error*100
+
+```
+
+The final model has an estimated out of sample prediction accuracy of 99.6 and the out of sample error rate is 0.4%. Thus, we can apply the choosed model(Random Forest) to the test data (testing, 20 obs of 160 variables) submission.
+
 ## Model applied to submission set
 We use the random forest prediction with the high accuracy model on the test data set.
 
@@ -122,5 +143,5 @@ prediction_results
 ```
 
 ## Conclusion
-Three prediction models were applied, the most accurated model was the random forestFor(0.9949), then the decision tree model (0.7346) and the linear discriminant analysis (0.7146). The random forest prediction model was applied to the test data for validation. 
+Three prediction models were applied, the most accurated model was the random forestFor(0.9949), then the decision tree model (0.7346) and the linear discriminant analysis (0.7146). The random forest prediction model was applied to the test data for validation and obtaining an accuracy of 99.6% with an out sample error of 0.4% 
 
